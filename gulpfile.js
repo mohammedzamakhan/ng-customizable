@@ -1,25 +1,52 @@
 'use strict';
 
-const browserSync   = require('browser-sync');
-const del           = require('del');
-const gulp          = require('gulp');
-const gutil         = require('gulp-util');
-const historyApi    = require('connect-history-api-fallback');
-const karma         = require('karma');
-const tslint        = require('gulp-tslint');
-const webpack       = require('webpack');
-const WebpackServer = require('webpack-dev-server');
+const autoprefixer = require('autoprefixer');
+const browserSync  = require('browser-sync');
+const changed      = require('gulp-changed');
+const del          = require('del');
+const exec         = require('child_process').exec;
+const gulp         = require('gulp');
+const historyApi   = require('connect-history-api-fallback');
+const karma        = require('karma');
+const postcss      = require('gulp-postcss');
+const sass         = require('gulp-sass');
+const sourcemaps   = require('gulp-sourcemaps');
+const tslint       = require('gulp-tslint');
+const typescript   = require('gulp-typescript');
 
 
 //=========================================================
 //  PATHS
 //---------------------------------------------------------
 const paths = {
+  lib: {
+    src: [
+      'node_modules/angular2/bundles/angular2.{js,min.js}',
+      'node_modules/angular2/bundles/angular2-polyfills.{js,min.js}',
+      'node_modules/angular2/bundles/http.{js,min.js}',
+      'node_modules/angular2/bundles/router.{js,min.js}',
+      'node_modules/es6-shim/es6-shim.{map,min.js}',
+      'node_modules/firebase/lib/firebase-web.js',
+      'node_modules/immutable/dist/immutable.min.js',
+      'node_modules/rxjs/bundles/Rx.{js,min.js,min.js.map}',
+      'node_modules/systemjs/dist/system.{js,js.map}'
+    ],
+
+    target: 'target/lib'
+  },
+
   src: {
+    html: 'src/**/*.html',
+    sass: 'src/**/*.scss',
     ts: 'src/**/*.ts'
   },
 
-  target: 'target'
+  target: 'target',
+
+  typings: {
+    entries: 'typings/custom/custom.d.ts',
+    watch: 'typings/**/*.ts'
+  }
 };
 
 
@@ -27,6 +54,10 @@ const paths = {
 //  CONFIG
 //---------------------------------------------------------
 const config = {
+  autoprefixer: {
+    browsers: ['last 3 versions', 'Firefox ESR']
+  },
+
   browserSync: {
     files: [paths.target + '/**/*'],
     notify: false,
@@ -42,16 +73,22 @@ const config = {
     configFile: __dirname + '/karma.conf.js'
   },
 
+  sass: {
+    errLogToConsole: true,
+    outputStyle: 'nested',
+    precision: 10,
+    sourceComments: false
+  },
+
+  ts: {
+    configFile: 'tsconfig.json'
+  },
+
   tslint: {
     report: {
       options: {emitError: true},
       type: 'verbose'
     }
-  },
-
-  webpack: {
-    dev: './webpack.dev',
-    dist: './webpack.dist'
   }
 };
 
@@ -60,6 +97,18 @@ const config = {
 //  TASKS
 //---------------------------------------------------------
 gulp.task('clean.target', () => del(paths.target));
+
+
+gulp.task('copy.html', () => {
+  return gulp.src(paths.src.html)
+    .pipe(gulp.dest(paths.target));
+});
+
+
+gulp.task('copy.lib', () => {
+  return gulp.src(paths.lib.src)
+    .pipe(gulp.dest(paths.lib.target));
+});
 
 
 gulp.task('lint', () => {
@@ -72,6 +121,16 @@ gulp.task('lint', () => {
 });
 
 
+gulp.task('sass', () => {
+  return gulp.src(paths.src.sass)
+    .pipe(sass(config.sass))
+    .pipe(postcss([
+      autoprefixer(config.autoprefixer)
+    ]))
+    .pipe(gulp.dest(paths.target));
+});
+
+
 gulp.task('serve', done => {
   config.browserSync.server.middleware = [historyApi()];
   browserSync.create()
@@ -79,27 +138,16 @@ gulp.task('serve', done => {
 });
 
 
-gulp.task('serve.dev', done => {
-  let conf = require(config.webpack.dev);
-  let compiler = webpack(conf);
-  let server = new WebpackServer(compiler, conf.devServer);
+const tsProject = typescript.createProject(config.ts.configFile);
 
-  server.listen(conf.devServer.port, 'localhost', () => {
-    gutil.log(gutil.colors.gray('-------------------------------------------'));
-    gutil.log('WebpackDevServer:', gutil.colors.magenta(`http://localhost:${conf.devServer.port}`));
-    gutil.log(gutil.colors.gray('-------------------------------------------'));
-    done();
-  });
-});
-
-
-gulp.task('ts', done => {
-  let conf = require(config.webpack.dist);
-  webpack(conf).run((error, stats) => {
-    if (error) throw new gutil.PluginError('webpack', error);
-    gutil.log(stats.toString(conf.devServer.stats));
-    done();
-  });
+gulp.task('ts', function ts(){
+  return gulp.src([paths.src.ts, paths.typings.entries], {allowEmpty: true})
+    .pipe(changed(paths.target, {extension: '.js'}))
+    .pipe(sourcemaps.init())
+    .pipe(typescript(tsProject))
+    .js
+    .pipe(sourcemaps.write('.'))
+    .pipe(gulp.dest(paths.target));
 });
 
 
@@ -108,6 +156,9 @@ gulp.task('ts', done => {
 //---------------------------
 gulp.task('build', gulp.series(
   'clean.target',
+  'copy.html',
+  'copy.lib',
+  'sass',
   'ts'
 ));
 
@@ -115,14 +166,22 @@ gulp.task('build', gulp.series(
 //===========================
 //  DEVELOP
 //---------------------------
-gulp.task('default', gulp.task('serve.dev'));
+gulp.task('default', gulp.series(
+  'build',
+  'serve',
+  function watch(){
+    gulp.watch(paths.src.html, gulp.task('copy.html'));
+    gulp.watch(paths.src.sass, gulp.task('sass'));
+    gulp.watch([paths.src.ts, paths.typings.watch], gulp.task('ts'));
+  }
+));
 
 
 //===========================
 //  TEST
 //---------------------------
 function karmaServer(options, done) {
-  let server = new karma.Server(options, error => {
+  const server = new karma.Server(options, error => {
     if (error) process.exit(error);
     done();
   });
@@ -130,22 +189,29 @@ function karmaServer(options, done) {
 }
 
 
-gulp.task('test', done => {
+gulp.task('karma', done => {
   config.karma.singleRun = true;
   karmaServer(config.karma, done);
 });
 
 
-gulp.task('test.watch', done => {
+gulp.task('karma.watch', done => {
   karmaServer(config.karma, done);
 });
 
 
-//===========================
-//  RELEASE
-//---------------------------
-gulp.task('dist', gulp.series(
-  'lint',
-  'test',
-  'build'
+gulp.task('karma.run', done => {
+  const cmd = process.platform === 'win32' ? 'node_modules\\.bin\\karma run karma.conf.js' : 'node node_modules/.bin/karma run karma.conf.js';
+  exec(cmd, (/*error, stdout*/) => {
+    done();
+  });
+});
+
+
+gulp.task('test', gulp.series('lint', 'build', 'karma'));
+
+
+gulp.task('test.watch', gulp.parallel(
+  gulp.series('lint', 'build', 'karma.watch'),
+  () => gulp.watch(paths.src.ts, gulp.series('ts', 'karma.run'))
 ));
