@@ -6,11 +6,9 @@ import { AuthService } from '../../modules/auth/auth-service';
 import { SignIn } from '../sign-in/sign-in';
 import { Tasks } from '../tasks/tasks';
 
-const styles: string = require('./app.scss');
-const template: string = require('./app.html');
-
 
 @Component({
+  moduleId: module.id,
   selector: 'app'
 })
 
@@ -19,8 +17,8 @@ const template: string = require('./app.html');
     NgIf,
     RouterOutlet
   ],
-  styles: [styles],
-  template
+  styleUrls: ['./app.css'],
+  templateUrl: './app.html'
 })
 
 @RouteConfig([

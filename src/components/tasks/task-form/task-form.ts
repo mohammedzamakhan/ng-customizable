@@ -2,11 +2,9 @@ import { FORM_DIRECTIVES } from 'angular2/common';
 import { Component, View } from 'angular2/core';
 import { TaskService } from '../../../modules/task/task-service';
 
-const styles: string = require('./task-form.scss');
-const template: string = require('./task-form.html');
-
 
 @Component({
+  moduleId: module.id,
   selector: 'task-form'
 })
 
@@ -14,8 +12,8 @@ const template: string = require('./task-form.html');
   directives: [
     FORM_DIRECTIVES
   ],
-  styles: [styles],
-  template
+  styleUrls: ['./task-form.css'],
+  templateUrl: './task-form.html'
 })
 
 export class TaskForm {

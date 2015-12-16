@@ -9,9 +9,6 @@ import { App } from './components/app/app';
 import { AUTH_PROVIDERS } from './modules/auth/providers';
 import { TASK_PROVIDERS } from './modules/task/providers';
 
-// global styles
-import './styles/styles.scss';
-
 
 Firebase.INTERNAL.forceWebSockets();
 

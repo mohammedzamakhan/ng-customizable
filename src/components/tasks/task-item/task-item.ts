@@ -4,11 +4,9 @@ import { ITask } from '../../../modules/task/task';
 import { TaskService } from '../../../modules/task/task-service';
 import { Autofocus } from '../../../directives/autofocus-directive';
 
-const styles: string = require('./task-item.scss');
-const template: string = require('./task-item.html');
-
 
 @Component({
+  moduleId: module.id,
   selector: 'task-item'
 })
 
@@ -18,8 +16,8 @@ const template: string = require('./task-item.html');
     CORE_DIRECTIVES,
     FORM_DIRECTIVES
   ],
-  styles: [styles],
-  template
+  styleUrls: ['./task-item.css'],
+  templateUrl: './task-item.html'
 })
 
 export class TaskItem {

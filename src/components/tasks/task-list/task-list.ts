@@ -6,11 +6,9 @@ import { ReplaySubject } from 'rxjs/subject/ReplaySubject';
 import { TaskItem } from '../task-item/task-item';
 import { TaskListFilterPipe } from './task-list-filter-pipe';
 
-const styles: string = require('./task-list.scss');
-const template: string = require('./task-list.html');
-
 
 @Component({
+  moduleId: module.id,
   selector: 'task-list'
 })
 
@@ -23,8 +21,8 @@ const template: string = require('./task-list.html');
   pipes: [
     TaskListFilterPipe
   ],
-  styles: [styles],
-  template
+  styleUrls: ['./task-list.css'],
+  templateUrl: './task-list.html'
 })
 
 export class TaskList {

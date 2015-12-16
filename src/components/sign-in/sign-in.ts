@@ -3,17 +3,15 @@ import { CanActivate, Router } from 'angular2/router';
 import { AuthRouteHelper } from '../../modules/auth/auth-route-helper';
 import { AuthService } from '../../modules/auth/auth-service';
 
-const styles: string = require('./sign-in.scss');
-const template: string = require('./sign-in.html');
-
 
 @Component({
+  moduleId: module.id,
   selector: 'sign-in'
 })
 
 @View({
-  styles: [styles],
-  template
+  styleUrls: ['./sign-in.css'],
+  templateUrl: './sign-in.html'
 })
 
 @CanActivate(() => AuthRouteHelper.requireUnauth())
