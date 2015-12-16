@@ -24,7 +24,7 @@ install:
   - npm install
 
 script:
-  - ./scripts/dist.sh
+  - ./scripts/test.sh
 
 after_success:
   - ./scripts/deploy.sh
